@@ -1,0 +1,1880 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="referrer" content="no-referrer">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>注音跑酷大冒險</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+    }
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #111426;
+      font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+    }
+    #game-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: radial-gradient(circle at 50% 30%, #291e47 0%, #0c0914 100%);
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* 頂部 HUD */
+    #hud {
+      position: absolute;
+      top: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      z-index: 10;
+      pointer-events: none;
+    }
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      background: rgba(18, 14, 38, 0.75);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(8px);
+      padding: 6px 18px;
+      border-radius: 30px;
+    }
+    .coin-badge {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 15px;
+      font-weight: bold;
+      color: #ffd214;
+      text-shadow: 0 0 10px rgba(255, 210, 20, 0.6);
+    }
+    .cloud-quick-btn {
+      background: rgba(0, 242, 254, 0.15);
+      border: 1px solid #00f2fe;
+      color: #00f2fe;
+      font-size: 12px;
+      font-weight: bold;
+      padding: 3px 10px;
+      border-radius: 12px;
+      cursor: pointer;
+      pointer-events: auto;
+      transition: all 0.2s;
+    }
+    .cloud-quick-btn:active {
+      transform: scale(0.92);
+    }
+    .hearts {
+      font-size: 24px;
+      letter-spacing: 2px;
+      color: #ff3b69;
+    }
+    .round-progress {
+      font-size: 15px;
+      font-weight: bold;
+      color: #00f2fe;
+      letter-spacing: 1px;
+    }
+    .target-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(16, 20, 48, 0.88);
+      border: 3px solid #6b52ff;
+      border-radius: 18px;
+      padding: 8px 24px;
+      box-shadow: 0 8px 25px rgba(107, 82, 255, 0.35);
+      pointer-events: auto;
+    }
+    .target-char {
+      font-size: 48px;
+      font-weight: 900;
+      color: #ffffff;
+      text-shadow: 0 0 15px #6b52ff;
+    }
+    .zhuyin-progress {
+      display: flex;
+      gap: 6px;
+    }
+    .slot {
+      width: 38px;
+      height: 48px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 2px dashed rgba(255, 255, 255, 0.3);
+      border-radius: 8px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 26px;
+      font-weight: bold;
+      color: #ffd214;
+      transition: all 0.2s;
+    }
+    .slot.filled {
+      border: 2px solid #00f2fe;
+      background: rgba(0, 242, 254, 0.2);
+      text-shadow: 0 0 10px #00f2fe;
+      animation: pop 0.3s ease-out;
+    }
+    .replay-btn {
+      background: linear-gradient(135deg, #00f2fe, #4facfe);
+      border: none;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #000;
+      font-size: 20px;
+      box-shadow: 0 4px 10px rgba(0, 242, 254, 0.4);
+      pointer-events: auto;
+    }
+    .replay-btn:active {
+      transform: scale(0.92);
+    }
+
+    /* 速度面板 */
+    #speed-panel {
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(18, 14, 38, 0.85);
+      border: 2px solid rgba(107, 82, 255, 0.5);
+      backdrop-filter: blur(10px);
+      padding: 18px 12px;
+      border-radius: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      z-index: 20;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+      pointer-events: auto;
+    }
+    #speed-panel .panel-title {
+      font-size: 13px;
+      color: #94a3b8;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+    #speed-panel .speed-val {
+      font-size: 16px;
+      color: #00f2fe;
+      font-weight: 900;
+      text-shadow: 0 0 8px rgba(0, 242, 254, 0.6);
+    }
+    .slider-wrapper {
+      height: 160px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 0;
+    }
+    input[type=range].vertical-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 140px;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+      outline: none;
+      transform: rotate(-90deg);
+      cursor: pointer;
+    }
+    input[type=range].vertical-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #00f2fe;
+      border: 3px solid #ffffff;
+      box-shadow: 0 0 10px #00f2fe;
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+    input[type=range].vertical-slider::-webkit-slider-thumb:active {
+      transform: scale(1.2);
+    }
+
+    /* 手機直向適配：縮小並移至右上角，完全不遮擋跑道與操作 */
+    @media (max-width: 600px) {
+      #speed-panel {
+        right: 8px;
+        top: 85px;
+        transform: none;
+        padding: 8px 6px;
+        border-radius: 14px;
+        background: rgba(18, 14, 38, 0.75);
+      }
+      #speed-panel .panel-title {
+        font-size: 11px;
+      }
+      #speed-panel .speed-val {
+        font-size: 13px;
+      }
+      .slider-wrapper {
+        height: 100px;
+        padding: 4px 0;
+      }
+      input[type=range].vertical-slider {
+        width: 85px;
+      }
+      input[type=range].vertical-slider::-webkit-slider-thumb {
+        width: 20px;
+        height: 20px;
+      }
+    }
+
+    /* 遮罩 */
+    .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(8, 6, 18, 0.92);
+      backdrop-filter: blur(10px);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      color: #fff;
+    }
+    .overlay h1 {
+      font-size: 38px;
+      margin-bottom: 12px;
+      background: linear-gradient(45deg, #00f2fe, #fe4f77);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .overlay p {
+      font-size: 16px;
+      color: #cbd5e1;
+      margin-bottom: 20px;
+      text-align: center;
+      padding: 0 20px;
+      line-height: 1.6;
+    }
+    .overlay p.error-text {
+      color: #ff4d6d;
+      font-weight: bold;
+      background: rgba(255, 77, 109, 0.15);
+      border: 1px solid #ff4d6d;
+      padding: 10px 18px;
+      border-radius: 12px;
+      max-width: 85%;
+      font-size: 14px;
+      white-space: pre-wrap;
+    }
+    .btn-start {
+      padding: 12px 40px;
+      font-size: 22px;
+      font-weight: bold;
+      border: none;
+      border-radius: 35px;
+      background: linear-gradient(135deg, #6b52ff, #00f2fe);
+      color: #fff;
+      cursor: pointer;
+      box-shadow: 0 10px 30px rgba(107, 82, 255, 0.5);
+      transition: transform 0.1s;
+    }
+    .btn-start:active {
+      transform: scale(0.95);
+    }
+    .btn-retry {
+      background: linear-gradient(135deg, #ff4d6d, #f77f00);
+      box-shadow: 0 10px 30px rgba(255, 77, 109, 0.5);
+      margin-top: 10px;
+      font-size: 18px;
+      padding: 10px 28px;
+    }
+
+    #manualPasteBox {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      margin-top: 15px;
+      width: 85%;
+      max-width: 450px;
+    }
+    #manualPasteBox textarea {
+      width: 100%;
+      height: 70px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 8px;
+      color: #fff;
+      padding: 8px;
+      font-size: 13px;
+      outline: none;
+    }
+    #manualPasteBox button {
+      padding: 8px 20px;
+      border-radius: 20px;
+      border: none;
+      background: #00f2fe;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .voice-badge {
+      position: absolute;
+      bottom: 14px;
+      left: 14px;
+      background: rgba(18, 14, 38, 0.85);
+      border: 1.5px solid rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(8px);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      color: #cbd5e1;
+      z-index: 50;
+      pointer-events: none;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+      transition: all 0.3s ease;
+    }
+    .voice-badge.online {
+      border-color: #00f2fe;
+      color: #00f2fe;
+      text-shadow: 0 0 8px rgba(0, 242, 254, 0.5);
+    }
+    .voice-badge.fallback {
+      border-color: #f59e0b;
+      color: #fbbf24;
+    }
+
+    @keyframes pop {
+      0% { transform: scale(0.6); }
+      70% { transform: scale(1.2); }
+      100% { transform: scale(1); }
+    }
+
+    /* 玩家個人檔案與雲端存檔卡片 */
+    .player-profile-card {
+      width: 90%;
+      max-width: 440px;
+      background: rgba(22, 17, 48, 0.92);
+      border: 2px solid rgba(107, 82, 255, 0.6);
+      border-radius: 18px;
+      padding: 15px 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(10px);
+    }
+    .profile-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .profile-row label {
+      font-size: 14px;
+      font-weight: bold;
+      color: #a5b4fc;
+      white-space: nowrap;
+    }
+    .profile-row input {
+      flex: 1;
+      min-width: 0;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 8px;
+      color: #fff;
+      padding: 8px 12px;
+      font-size: 14px;
+      font-weight: bold;
+      outline: none;
+    }
+    .profile-row input:focus {
+      border-color: #00f2fe;
+      box-shadow: 0 0 10px rgba(0, 242, 254, 0.4);
+    }
+    .btn-profile {
+      padding: 8px 14px;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: bold;
+      cursor: pointer;
+      background: linear-gradient(135deg, #6b52ff, #4facfe);
+      color: #fff;
+      transition: all 0.2s;
+      white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(107, 82, 255, 0.4);
+    }
+    .btn-profile:active {
+      transform: scale(0.93);
+    }
+    .btn-profile.btn-save-card {
+      background: linear-gradient(135deg, #059669, #10b981);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+    }
+    .profile-status {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-bottom: 10px;
+      line-height: 1.4;
+      min-height: 18px;
+      transition: color 0.2s;
+    }
+    .profile-status.success { color: #34d399; font-weight: bold; }
+    .profile-status.warning { color: #fbbf24; font-weight: bold; }
+    .profile-status.error { color: #ff4d6d; font-weight: bold; }
+
+    .profile-info-row {
+      display: flex;
+      justify-content: space-around;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 13px;
+      color: #cbd5e1;
+      margin-bottom: 10px;
+    }
+    .profile-info-row strong {
+      color: #00f2fe;
+    }
+    .btn-wardrobe {
+      width: 100%;
+      padding: 9px;
+      border: 1.5px solid rgba(0, 242, 254, 0.6);
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(0, 242, 254, 0.15), rgba(107, 82, 255, 0.25));
+      color: #00f2fe;
+      font-weight: bold;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-wardrobe:active {
+      transform: scale(0.96);
+      background: linear-gradient(135deg, rgba(0, 242, 254, 0.3), rgba(107, 82, 255, 0.4));
+    }
+
+    /* 換裝衣櫥彈窗 */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(6, 4, 15, 0.88);
+      backdrop-filter: blur(12px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 200;
+    }
+    .modal-content {
+      width: 92%;
+      max-width: 520px;
+      background: #15112e;
+      border: 2px solid #6b52ff;
+      border-radius: 20px;
+      padding: 22px;
+      box-shadow: 0 15px 50px rgba(0, 0, 0, 0.7);
+      color: #fff;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      padding-bottom: 12px;
+      margin-bottom: 14px;
+    }
+    .modal-header h2 {
+      font-size: 20px;
+      background: linear-gradient(45deg, #00f2fe, #ffd214);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .modal-close-btn {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 24px;
+      cursor: pointer;
+      padding: 4px 8px;
+    }
+    .modal-coins {
+      font-size: 15px;
+      color: #ffd214;
+      margin-bottom: 14px;
+      font-weight: bold;
+    }
+    .items-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
+      gap: 12px;
+      max-height: 55vh;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .item-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 2px solid rgba(255, 255, 255, 0.12);
+      border-radius: 14px;
+      padding: 12px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      text-align: center;
+      transition: all 0.2s;
+    }
+    .item-card.equipped {
+      border-color: #00f2fe;
+      background: rgba(0, 242, 254, 0.12);
+      box-shadow: 0 0 15px rgba(0, 242, 254, 0.3);
+    }
+    .item-icon {
+      font-size: 32px;
+    }
+    .item-name {
+      font-size: 13px;
+      font-weight: bold;
+      color: #fff;
+    }
+    .item-desc {
+      font-size: 11px;
+      color: #94a3b8;
+      line-height: 1.3;
+      min-height: 28px;
+    }
+    .item-action-btn {
+      width: 100%;
+      padding: 7px;
+      border-radius: 8px;
+      border: none;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 4px;
+      transition: transform 0.1s;
+    }
+    .btn-equip {
+      background: #00f2fe;
+      color: #000;
+    }
+    .btn-equipped {
+      background: rgba(255, 255, 255, 0.18);
+      color: #a5b4fc;
+      cursor: default;
+    }
+    .btn-buy {
+      background: #ffd214;
+      color: #000;
+    }
+    .item-action-btn:active {
+      transform: scale(0.95);
+    }
+
+    /* 浮動提示 Toast */
+    .toast-notice {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(120px);
+      background: rgba(18, 14, 38, 0.95);
+      border: 1.5px solid #00f2fe;
+      color: #fff;
+      padding: 10px 24px;
+      border-radius: 25px;
+      font-size: 14px;
+      font-weight: bold;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
+      z-index: 300;
+      transition: transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+      pointer-events: none;
+    }
+    .toast-notice.show {
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="voiceStatusBadge" class="voice-badge">🔊 語音：偵測中...</div>
+
+    <div id="hud" style="display:none;">
+      <div class="status-bar">
+        <div class="hearts" id="heartContainer">❤️❤️❤️</div>
+        <div class="round-progress" id="roundProgress">第 1 / 1 題</div>
+        <div class="coin-badge" id="hudCoinBadge" title="目前累積金幣">💰 <span id="hudCoins">0</span></div>
+        <button class="cloud-quick-btn" id="hudSaveBtn" title="手動同步至雲端">☁️ 存檔</button>
+      </div>
+      <div class="target-box">
+        <div class="target-char" id="targetChar">字</div>
+        <div class="zhuyin-progress" id="zhuyinProgress"></div>
+        <button class="replay-btn" id="replayBtn" title="重聽發音">🔊</button>
+      </div>
+    </div>
+
+    <div id="speed-panel" style="display:none;">
+      <div class="panel-title">速度</div>
+      <div class="speed-val" id="speedDisplay">1.0x</div>
+      <div class="slider-wrapper">
+        <input type="range" class="vertical-slider" id="speedSlider" min="0.5" max="2.5" step="0.1" value="1.0">
+      </div>
+    </div>
+
+    <div class="overlay" id="startOverlay">
+      <h1 id="overlayTitle">注音衝刺特攻隊</h1>
+
+      <!-- 玩家檔案與雲端存檔控制面板 -->
+      <div class="player-profile-card">
+        <div class="profile-row">
+          <label for="playerIdInput">玩家代碼：</label>
+          <input type="text" id="playerIdInput" placeholder="輸入自訂代碼 (例: P01)" maxlength="16">
+          <button class="btn-profile" id="cloudLoadBtn">☁️ 讀檔</button>
+          <button class="btn-profile btn-save-card" id="cloudSaveBtn">💾 存檔</button>
+        </div>
+        <div class="profile-status" id="cloudStatusText">💡 輸入代碼點擊「讀檔」即可載入雲端試算表進度</div>
+        <div class="profile-info-row">
+          <span>💰 金幣：<strong id="cardCoins">0</strong></span>
+          <span>🎒 裝備數：<strong id="cardItemCount">1</strong></span>
+          <span>✨ 穿戴：<strong id="cardEquipped">初心者護目鏡</strong></span>
+        </div>
+        <button class="btn-wardrobe" id="openWardrobeBtn">👗 打開換裝衣櫥 / 裝備庫</button>
+      </div>
+
+      <p id="loadingMsg">連線題庫中...</p>
+      <button class="btn-start" id="startBtn" style="display:none;">點擊開始遊戲</button>
+      <button class="btn-start btn-retry" id="retryBtn" style="display:none;">重試連線</button>
+
+      <div id="manualPasteBox">
+        <p style="font-size:13px; color:#94a3b8; margin-bottom:4px;">
+          直接在 Google 試算表全選複製 (Ctrl+A / Ctrl+C)，貼在此處即可立即啟用：
+        </p>
+        <textarea id="csvInput" placeholder="在此貼上試算表文字..."></textarea>
+        <button id="saveManualBtn">套用自訂題庫</button>
+      </div>
+    </div>
+
+    <!-- 換裝衣櫥彈窗 -->
+    <div class="modal-overlay" id="wardrobeModal" style="display:none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>🎒 冒險者衣櫥與裝備庫</h2>
+          <button class="modal-close-btn" id="closeWardrobeBtn">✕</button>
+        </div>
+        <div class="modal-coins">目前擁有金幣：💰 <span id="wardrobeCoins">0</span></div>
+        <div class="items-grid" id="itemsGrid"></div>
+      </div>
+    </div>
+
+    <!-- 浮動訊息通知 -->
+    <div class="toast-notice" id="toastNotice">☁️ 雲端存檔成功</div>
+  </div>
+
+  <script>
+    const CONFUSION_DICT = {
+      'ㄅ': ['ㄉ', 'ㄆ', 'ㄇ'], 'ㄉ': ['ㄅ', 'ㄊ', 'ㄌ'], 'ㄆ': ['ㄅ', 'ㄇ', 'ㄈ'],
+      'ㄇ': ['ㄈ', 'ㄩ', 'ㄅ'], 'ㄈ': ['ㄇ', 'ㄏ', 'ㄆ'], 'ㄊ': ['ㄉ', 'ㄌ', 'ㄋ'],
+      'ㄋ': ['ㄌ', 'ㄉ', 'ㄖ'], 'ㄌ': ['ㄋ', 'ㄉ', 'ㄖ'], 'ㄍ': ['ㄎ', 'ㄏ'],
+      'ㄎ': ['ㄍ', 'ㄏ'],       'ㄏ': ['ㄍ', 'ㄎ', 'ㄈ'], 'ㄐ': ['ㄑ', 'ㄒ'],
+      'ㄑ': ['ㄐ', 'ㄒ'],       'ㄒ': ['ㄐ', 'ㄑ', 'ㄕ'], 'ㄓ': ['ㄔ', 'ㄕ', 'ㄗ'],
+      'ㄔ': ['ㄓ', 'ㄕ', 'ㄘ'], 'ㄕ': ['ㄓ', 'ㄔ', 'ㄙ'], 'ㄖ': ['ㄌ', '日', 'ㄓ'],
+      'ㄗ': ['ㄘ', 'ㄙ', 'ㄓ'], 'ㄘ': ['ㄗ', 'ㄙ', 'ㄔ'], 'ㄙ': ['ㄗ', 'ㄘ', 'ㄕ'],
+      'ㄧ': ['ㄩ', 'ㄒ'],       'ㄨ': ['ㄩ', 'ㄛ'],       'ㄩ': ['ㄧ', 'ㄨ', 'ㄇ'],
+      'ㄚ': ['ㄛ', 'ㄜ'],       'ㄛ': ['ㄜ', 'ㄝ', 'ㄨ'], 'ㄜ': ['ㄛ', 'ㄝ'],
+      'ㄝ': ['ㄜ', 'ㄛ'],       'ㄞ': ['ㄟ', 'ㄢ'],       'ㄟ': ['ㄞ', 'ㄣ'],
+      'ㄠ': ['ㄡ', 'ㄢ'],       'ㄡ': ['ㄠ', 'ㄥ'],       'ㄢ': ['ㄤ', 'ㄞ'],
+      'ㄣ': ['ㄥ', 'ㄟ'],       'ㄤ': ['ㄢ', 'ㄥ'],       'ㄥ': ['ㄣ', 'ㄤ'],
+      'ㄦ': ['ㄖ', 'ㄜ'],
+      '': ['ˊ', 'ˇ', 'ˋ'],
+      'ˊ': ['ˇ', 'ˋ', ''],
+      'ˇ': ['ˊ', 'ˋ', ''],
+      'ˋ': ['ˊ', 'ˇ', '']
+    };
+
+    // 正確的發布網址（注意是 NKmfI2oj 大寫 I）
+    const RAW_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT4g3TVJw2igNKmfI2ojG4z4HlMPJQAJ4JVdh7Ggqllu16TwPBoc1hcntXUubSMANUPTzOFGuECbYl5/pub?output=csv';
+
+    // Google Apps Script 雲端存檔 API
+    const GAS_ENDPOINT_URL = 'https://script.google.com/macros/s/AKfycbxPrh2-G3_n7WRNB5j5B4dtlhrFsXVsJ52oglfKqmh9tkbEk72MoVOkHdxH9-jjNORP/exec';
+
+    // 可購買與穿戴的服飾/裝備清單（與試算表「背包裝備」、「穿戴服飾」欄位相容）
+    const AVAILABLE_ITEMS = [
+      { id: '初心者護目鏡', name: '初心者護目鏡', icon: '🥽', desc: '賽博電子青藍護目鏡', price: 0 },
+      { id: '學霸光環', name: '學霸光環', icon: '😇', desc: '頭頂綻放神聖智慧光環', price: 30 },
+      { id: '疾風光輪', name: '疾風光輪', icon: '🌀', desc: '環繞旋轉的青綠粒子護盾', price: 60 },
+      { id: '雷霆火花', name: '雷霆火花', icon: '⚡', desc: '躍動跳閃的紫色雷電球', price: 100 },
+      { id: '烈焰流星', name: '烈焰流星', icon: '🔥', desc: '熾熱燃燒的赤炎光輪', price: 150 }
+    ];
+
+    let playerData = {
+      id: '',
+      coins: 0,
+      inventory: ['初心者護目鏡'],
+      equipped: '初心者護目鏡',
+      updatedAt: ''
+    };
+
+    function initPlayerData() {
+      const cached = localStorage.getItem('zhuyin_player_data');
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          playerData = Object.assign(playerData, parsed);
+        } catch (e) {}
+      }
+      if (!playerData.id) {
+        playerData.id = 'P_' + Math.floor(1000 + Math.random() * 9000);
+      }
+      updatePlayerUI();
+      renderWardrobeItems();
+    }
+
+    function updatePlayerUI() {
+      const idInput = document.getElementById('playerIdInput');
+      if (idInput && !idInput.matches(':focus') && idInput.value !== playerData.id) {
+        idInput.value = playerData.id;
+      }
+      const hudCoins = document.getElementById('hudCoins');
+      if (hudCoins) hudCoins.textContent = playerData.coins;
+
+      const cardCoins = document.getElementById('cardCoins');
+      if (cardCoins) cardCoins.textContent = playerData.coins;
+
+      const cardItemCount = document.getElementById('cardItemCount');
+      if (cardItemCount) cardItemCount.textContent = playerData.inventory.length;
+
+      const cardEquipped = document.getElementById('cardEquipped');
+      if (cardEquipped) cardEquipped.textContent = playerData.equipped || '無';
+
+      const wardrobeCoins = document.getElementById('wardrobeCoins');
+      if (wardrobeCoins) wardrobeCoins.textContent = playerData.coins;
+
+      localStorage.setItem('zhuyin_player_data', JSON.stringify(playerData));
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toastNotice');
+      if (!toast) return;
+      toast.textContent = msg;
+      toast.classList.add('show');
+      clearTimeout(toast._timer);
+      toast._timer = setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2500);
+    }
+
+    async function cloudLoad(id) {
+      const statusEl = document.getElementById('cloudStatusText');
+      const inputEl = document.getElementById('playerIdInput');
+      const targetId = (id || (inputEl ? inputEl.value : '') || playerData.id || '').trim();
+      if (!targetId) {
+        if (statusEl) {
+          statusEl.className = 'profile-status error';
+          statusEl.textContent = '❌ 請先輸入玩家代碼！';
+        }
+        return;
+      }
+      playerData.id = targetId;
+
+      if (statusEl) {
+        statusEl.className = 'profile-status warning';
+        statusEl.textContent = '⏳ 正在連線 Google 試算表讀取存檔...';
+      }
+
+      try {
+        const res = await fetchWithTimeout(GAS_ENDPOINT_URL, 8000, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'load', playerId: targetId })
+        });
+        const result = await res.json();
+
+        if (result.success && result.data) {
+          playerData.id = result.data.playerId;
+          playerData.coins = Number(result.data.coins) || 0;
+
+          if (typeof result.data.inventory === 'string') {
+            playerData.inventory = result.data.inventory.split(',').map(s => s.trim()).filter(Boolean);
+          } else if (Array.isArray(result.data.inventory)) {
+            playerData.inventory = result.data.inventory;
+          }
+          if (!playerData.inventory.includes('初心者護目鏡')) {
+            playerData.inventory.unshift('初心者護目鏡');
+          }
+
+          playerData.equipped = result.data.equipped || '初心者護目鏡';
+          playerData.updatedAt = result.data.updatedAt || '';
+
+          updatePlayerUI();
+          renderWardrobeItems();
+
+          if (statusEl) {
+            statusEl.className = 'profile-status success';
+            statusEl.textContent = result.exists
+              ? `🟢 雲端載入成功！(更新於: ${playerData.updatedAt})`
+              : `🟡 ${result.message}`;
+          }
+          showToast(`☁️ 玩家「${playerData.id}」進度載入完成！`);
+        } else {
+          throw new Error(result.message || '讀取資料失敗');
+        }
+      } catch (err) {
+        console.warn('雲端讀檔失敗:', err);
+        if (statusEl) {
+          statusEl.className = 'profile-status error';
+          statusEl.textContent = `⚠️ 連線失敗（${err.message}），使用本機存檔`;
+        }
+        showToast('⚠️ 雲端讀檔失敗，使用本機暫存');
+      }
+    }
+
+    async function cloudSave(isSilent = false) {
+      const statusEl = document.getElementById('cloudStatusText');
+      const inputEl = document.getElementById('playerIdInput');
+      if (inputEl && inputEl.value.trim()) {
+        playerData.id = inputEl.value.trim();
+      }
+      const targetId = (playerData.id || '').trim();
+      if (!targetId) {
+        if (!isSilent && statusEl) {
+          statusEl.className = 'profile-status error';
+          statusEl.textContent = '❌ 請先輸入玩家代碼！';
+        }
+        return;
+      }
+
+      localStorage.setItem('zhuyin_player_data', JSON.stringify(playerData));
+
+      if (!isSilent && statusEl) {
+        statusEl.className = 'profile-status warning';
+        statusEl.textContent = '⏳ 正在同步至雲端試算表...';
+      }
+
+      try {
+        const payload = {
+          action: 'save',
+          playerId: targetId,
+          coins: playerData.coins,
+          inventory: playerData.inventory.join(', '),
+          equipped: playerData.equipped
+        };
+
+        const res = await fetchWithTimeout(GAS_ENDPOINT_URL, 8000, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+        const result = await res.json();
+
+        if (result.success && result.data) {
+          playerData.updatedAt = result.data.updatedAt;
+          updatePlayerUI();
+          if (!isSilent && statusEl) {
+            statusEl.className = 'profile-status success';
+            statusEl.textContent = `🟢 雲端存檔成功！(${result.data.updatedAt})`;
+          }
+          if (!isSilent) showToast('💾 雲端存檔成功！');
+        } else {
+          throw new Error(result.message || '存檔失敗');
+        }
+      } catch (err) {
+        console.warn('雲端存檔失敗:', err);
+        if (!isSilent && statusEl) {
+          statusEl.className = 'profile-status error';
+          statusEl.textContent = `⚠️ 存檔連線失敗（${err.message}），已先存於本機`;
+        }
+        if (!isSilent) showToast('⚠️ 雲端存檔失敗，已先存於本機');
+      }
+    }
+
+    function renderWardrobeItems() {
+      const grid = document.getElementById('itemsGrid');
+      if (!grid) return;
+      grid.innerHTML = '';
+
+      AVAILABLE_ITEMS.forEach(item => {
+        const isOwned = playerData.inventory.includes(item.id);
+        const isEquipped = playerData.equipped === item.id;
+
+        const card = document.createElement('div');
+        card.className = 'item-card' + (isEquipped ? ' equipped' : '');
+
+        let btnHtml = '';
+        if (isEquipped) {
+          btnHtml = `<button class="item-action-btn btn-equipped" disabled>穿戴中</button>`;
+        } else if (isOwned) {
+          btnHtml = `<button class="item-action-btn btn-equip" data-equip="${item.id}">立即穿戴</button>`;
+        } else {
+          btnHtml = `<button class="item-action-btn btn-buy" data-buy="${item.id}">購買 (${item.price}💰)</button>`;
+        }
+
+        card.innerHTML = `
+          <div class="item-icon">${item.icon}</div>
+          <div class="item-name">${item.name}</div>
+          <div class="item-desc">${item.desc}</div>
+          ${btnHtml}
+        `;
+        grid.appendChild(card);
+      });
+
+      // 綁定裝備與購買按鈕事件
+      grid.querySelectorAll('[data-equip]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          equipItem(e.currentTarget.getAttribute('data-equip'));
+        });
+      });
+      grid.querySelectorAll('[data-buy]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          buyItem(e.currentTarget.getAttribute('data-buy'));
+        });
+      });
+    }
+
+    function equipItem(itemId) {
+      if (!playerData.inventory.includes(itemId)) return;
+      playerData.equipped = itemId;
+      updatePlayerUI();
+      renderWardrobeItems();
+      cloudSave(true);
+      showToast(`✨ 已換裝為「${itemId}」！`);
+    }
+
+    function buyItem(itemId) {
+      const item = AVAILABLE_ITEMS.find(i => i.id === itemId);
+      if (!item) return;
+      if (playerData.coins < item.price) {
+        showToast('❌ 金幣不足，快去答題闖關賺金幣吧！');
+        return;
+      }
+      playerData.coins -= item.price;
+      if (!playerData.inventory.includes(itemId)) {
+        playerData.inventory.push(itemId);
+      }
+      playerData.equipped = itemId;
+      updatePlayerUI();
+      renderWardrobeItems();
+      cloudSave(true);
+      showToast(`🎉 成功購買並穿戴「${item.name}」！`);
+    }
+
+    function openWardrobe() {
+      const modal = document.getElementById('wardrobeModal');
+      if (modal) {
+        updatePlayerUI();
+        renderWardrobeItems();
+        modal.style.display = 'flex';
+      }
+    }
+
+    function closeWardrobe() {
+      const modal = document.getElementById('wardrobeModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    // 漂浮字體特效
+    let floatingTexts = [];
+    function addFloatingText(text, x, y, color = '#ffd214') {
+      floatingTexts.push({ text, x, y, alpha: 1.0, color, vy: -2.2 });
+    }
+    function updateAndDrawFloatingTexts() {
+      for (let i = floatingTexts.length - 1; i >= 0; i--) {
+        const ft = floatingTexts[i];
+        ft.y += ft.vy;
+        ft.alpha -= 0.025;
+        if (ft.alpha <= 0) {
+          floatingTexts.splice(i, 1);
+          continue;
+        }
+        ctx.save();
+        ctx.globalAlpha = ft.alpha;
+        ctx.font = '900 28px "PingFang TC", "Microsoft JhengHei"';
+        ctx.fillStyle = ft.color;
+        ctx.shadowColor = ft.color;
+        ctx.shadowBlur = 12;
+        ctx.textAlign = 'center';
+        ctx.fillText(ft.text, ft.x, ft.y);
+        ctx.restore();
+      }
+    }
+
+    let questions = [];
+    let currentQuestion = null;
+    let gateIndex = 0;
+    let lives = 3;
+    let gameState = 'loading';
+
+    const BASE_SPEED = 0.0038;
+    let speedMultiplier = 1.0;
+
+    // --- 語音系統（支援 iOS / 平板 / 桌機全平台高音質與 Autoplay 解鎖）---
+    let chosenVoice = null;
+    let speechInterval = null;
+    let masterAudio = null; // iOS 全域解鎖單一音訊實例
+
+    // 手機/iOS 專用：在點擊開始按鈕的手勢中預先解鎖音訊上下文
+    function unlockAudioForMobile() {
+      if (!masterAudio) {
+        masterAudio = new Audio();
+      }
+      // 播放 0.01 秒極短靜音解鎖 iOS WebKit 限制
+      masterAudio.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+      masterAudio.play().then(() => {
+        masterAudio.pause();
+      }).catch(() => {});
+
+      if ('speechSynthesis' in window) {
+        const silentUtter = new SpeechSynthesisUtterance('');
+        window.speechSynthesis.speak(silentUtter);
+      }
+    }
+
+    function updateVoiceBadge(msg, type) {
+      const el = document.getElementById('voiceStatusBadge');
+      if (!el) return;
+      el.textContent = msg;
+      el.className = 'voice-badge ' + (type || '');
+    }
+
+    function initSpeech() {
+      if (!('speechSynthesis' in window)) {
+        updateVoiceBadge('🔊 語音：本機不支援語音合成', 'fallback');
+        return;
+      }
+      const loadVoices = () => {
+        const voices = window.speechSynthesis.getVoices();
+        if (!voices || voices.length === 0) return;
+
+        chosenVoice = voices.find(v => (v.lang === 'zh-TW' || v.lang === 'zh_TW') && (v.name.includes('HsiaoChen') || v.name.includes('曉臻')))
+                   || voices.find(v => (v.lang === 'zh-TW' || v.lang === 'zh_TW') && (v.name.includes('YunJhe') || v.name.includes('雲哲')))
+                   || voices.find(v => (v.lang === 'zh-TW' || v.lang === 'zh_TW') && v.name.includes('Microsoft') && v.name.includes('Natural'))
+                   || voices.find(v => (v.lang === 'zh-TW' || v.lang === 'zh_TW') && (v.name.includes('Natural') || v.name.includes('Online') || v.name.includes('Enhanced')))
+                   || voices.find(v => (v.lang === 'zh-TW' || v.lang === 'zh_TW') && v.name.includes('Microsoft'))
+                   || voices.find(v => v.lang === 'zh-TW' || v.lang === 'zh_TW')
+                   || voices.find(v => v.lang.startsWith('zh'));
+
+        const voiceName = chosenVoice ? chosenVoice.name : '系統預設語音';
+        updateVoiceBadge(`🔊 本機預備語音：${voiceName}`, '');
+      };
+
+      loadVoices();
+      if (speechSynthesis.onvoiceschanged !== undefined) {
+        speechSynthesis.onvoiceschanged = loadVoices;
+      }
+    }
+
+    function speak(text) {
+      if (!text) return;
+
+      if (!masterAudio) {
+        masterAudio = new Audio();
+      }
+
+      // 停止先前正在發聲的音訊
+      try {
+        masterAudio.pause();
+      } catch (e) {}
+
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+
+      const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=zh-TW&client=tw-ob&q=${encodeURIComponent(text)}`;
+      masterAudio.playbackRate = 0.85;
+
+      let fallbackTriggered = false;
+      const doFallback = (reason) => {
+        if (fallbackTriggered) return;
+        fallbackTriggered = true;
+        const voiceName = chosenVoice ? chosenVoice.name : '系統預設語音';
+        console.warn(`[語音診斷] 線上發音失敗（${reason}），降級本機 TTS:`, voiceName);
+        updateVoiceBadge(`⚠️ 線上音訊失敗 (${reason}) ➔ 本機：${voiceName}`, 'fallback');
+
+        if ('speechSynthesis' in window) {
+          const utter = new SpeechSynthesisUtterance(text);
+          utter.rate = 0.65;
+          utter.pitch = 1.0;
+          if (chosenVoice) utter.voice = chosenVoice;
+          window.speechSynthesis.speak(utter);
+        }
+      };
+
+      masterAudio.onerror = () => {
+        const code = masterAudio.error ? masterAudio.error.code : '載入被拒';
+        doFallback(`代碼 ${code}`);
+      };
+
+      masterAudio.onplaying = () => {
+        updateVoiceBadge(`🔊 線上發音：Google 台灣標準真人音訊 (0.85x)`, 'online');
+      };
+
+      // 同一字詞直接重置進度重播，省去向伺服器重複請求與延遲
+      if (masterAudio.getAttribute('data-word') === text) {
+        try {
+          masterAudio.currentTime = 0;
+        } catch (e) {}
+      } else {
+        masterAudio.setAttribute('data-word', text);
+        masterAudio.src = audioUrl;
+      }
+
+      const playPromise = masterAudio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((err) => {
+          if (err.name === 'AbortError') return;
+          doFallback(err.name || '播放受限');
+        });
+      }
+    }
+
+    function startRepeatingSpeech(text) {
+      stopRepeatingSpeech();
+      speak(text);
+      speechInterval = setInterval(() => {
+        if (gameState === 'playing' && currentQuestion) {
+          speak(text);
+        }
+      }, 2800);
+    }
+
+    function stopRepeatingSpeech() {
+      if (speechInterval) {
+        clearInterval(speechInterval);
+        speechInterval = null;
+      }
+      if (masterAudio) {
+        try {
+          masterAudio.pause();
+          masterAudio.currentTime = 0;
+        } catch (e) {}
+      }
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    }
+
+    function parseCSVLine(text) {
+      const isTab = text.includes('\t');
+      if (isTab) {
+        return text.split('\t').map(c => c.trim().replace(/^"|"$/g, ''));
+      }
+      const row = [''];
+      let inQuotes = false;
+      for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        if (c === '"') {
+          inQuotes = !inQuotes;
+        } else if (c === ',' && !inQuotes) {
+          row.push('');
+        } else {
+          row[row.length - 1] += c;
+        }
+      }
+      return row.map(cell => cell.trim().replace(/^"|"$/g, ''));
+    }
+
+    function isRowActive(val) {
+      if (!val) return false;
+      const clean = val.replace(/\s+/g, '');
+      return clean === 'Y' || clean === 'y' || clean === 'Ｙ';
+    }
+
+    // 內建離線備援題庫（來自試算表目前啟用的 31 道挑戰題目）
+    const DEFAULT_DECK = [
+      { char: "手", gates: ["ㄕ", "ㄡ", "ˇ"] },
+      { char: "拉", gates: ["ㄌ", "ㄚ", ""] },
+      { char: "哈", gates: ["ㄏ", "ㄚ", ""] },
+      { char: "老", gates: ["ㄌ", "ㄠ", "ˇ"] },
+      { char: "師", gates: ["ㄕ", ""] },
+      { char: "好", gates: ["ㄏ", "ㄠ", "ˇ"] },
+      { char: "排", gates: ["ㄆ", "ㄞ", "ˊ"] },
+      { char: "蠟", gates: ["ㄌ", "ㄚ", "ˋ"] },
+      { char: "筆", gates: ["ㄅ", "ㄧ", "ˇ"] },
+      { char: "慢", gates: ["ㄇ", "ㄢ", "ˋ"] },
+      { char: "來", gates: ["ㄌ", "ㄞ", "ˊ"] },
+      { char: "收", gates: ["ㄕ", "ㄡ", ""] },
+      { char: "在", gates: ["ㄗ", "ㄞ", "ˋ"] },
+      { char: "籃", gates: ["ㄌ", "ㄢ", "ˊ"] },
+      { char: "子", gates: ["ㄗ", "˙"] },
+      { char: "裡", gates: ["ㄌ", "ㄧ", "ˇ"] },
+      { char: "啦", gates: ["ㄌ", "ㄚ", "˙"] },
+      { char: "拍", gates: ["ㄆ", "ㄞ", ""] },
+      { char: "數", gates: ["ㄕ", "ㄨ", "ˇ"] },
+      { char: "數", gates: ["ㄕ", "ㄨ", "ˋ"] },
+      { char: "一", gates: ["ㄧ", "ˋ"] },
+      { char: "張", gates: ["ㄓ", "ㄤ", ""] },
+      { char: "圖", gates: ["ㄊ", "ㄨ", "ˊ"] },
+      { char: "三", gates: ["ㄙ", "ㄢ", ""] },
+      { char: "棵", gates: ["ㄎ", "ㄜ", ""] },
+      { char: "樹", gates: ["ㄕ", "ㄨ", "ˋ"] },
+      { char: "隻", gates: ["ㄓ", ""] },
+      { char: "白", gates: ["ㄅ", "ㄞ", "ˊ"] },
+      { char: "兔", gates: ["ㄊ", "ㄨ", "ˋ"] },
+      { char: "五", gates: ["ㄨ", "ˇ"] },
+      { char: "虎", gates: ["ㄏ", "ㄨ", "ˇ"] }
+    ];
+
+    let deckSource = 'unknown'; // 'online' (雲端試算表) 或 'offline' (網頁內建題庫)
+
+    function fetchWithTimeout(url, timeoutMs = 8000, options = {}) {
+      return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('連線逾時 (Timeout)')), timeoutMs);
+        // 移除 cache: 'no-cache'，避免 Safari/iOS 觸發 CORS OPTIONS 預檢導致 Load Failed
+        fetch(url, options)
+          .then(res => {
+            clearTimeout(timer);
+            resolve(res);
+          })
+          .catch(err => {
+            clearTimeout(timer);
+            reject(err);
+          });
+      });
+    }
+
+    async function fetchQuestions() {
+      const msgEl = document.getElementById('loadingMsg');
+      const startBtn = document.getElementById('startBtn');
+      const retryBtn = document.getElementById('retryBtn');
+      const pasteBox = document.getElementById('manualPasteBox');
+
+      msgEl.className = '';
+      msgEl.style.color = '#cbd5e1';
+      msgEl.textContent = '連線 Google 試算表題庫中...';
+      startBtn.style.display = 'none';
+      retryBtn.style.display = 'none';
+      pasteBox.style.display = 'none';
+
+      // 加入防止快取的隨機參數
+      const cacheBustUrl = RAW_CSV_URL + (RAW_CSV_URL.includes('?') ? '&' : '?') + 't=' + Date.now();
+      const endpoints = [RAW_CSV_URL, cacheBustUrl];
+
+      let csvText = null;
+      let lastError = '網路連線受阻';
+
+      for (let i = 0; i < endpoints.length; i++) {
+        try {
+          msgEl.textContent = `連線題庫中（通道 ${i + 1}/${endpoints.length}）...`;
+          const res = await fetchWithTimeout(endpoints[i], 8000);
+          if (res.ok) {
+            const text = await res.text();
+            if (text && (text.includes(',') || text.includes('\t') || text.includes('\n'))) {
+              csvText = text;
+              break;
+            }
+          } else {
+            lastError = `HTTP ${res.status}`;
+          }
+        } catch (e) {
+          lastError = e.message || '連線失敗';
+          console.warn(`通道 ${i + 1} 失敗跳過:`, e.message);
+        }
+      }
+
+      if (csvText) {
+        parseCSVAndStart(csvText);
+      } else {
+        // 明確提示：雲端連線失敗，自動改用網頁內建題庫
+        deckSource = 'offline';
+        const cached = localStorage.getItem('zhuyin_saved_deck');
+        questions = cached ? JSON.parse(cached) : [...DEFAULT_DECK];
+
+        msgEl.className = 'error-text';
+        msgEl.textContent = `⚠️ 無法連線至 Google 試算表（${lastError}）\n目前改用【網頁內建題庫（共 ${questions.length} 題）】出題！`;
+        startBtn.style.display = 'block';
+        startBtn.textContent = '使用內建題庫開始遊戲';
+        retryBtn.style.display = 'inline-block';
+        retryBtn.textContent = '🔄 重新嘗試連線試算表';
+        pasteBox.style.display = 'none';
+      }
+    }
+
+    function parseCSVAndStart(csvText) {
+      try {
+        const rawLines = csvText.split(/\r?\n/).filter(line => line.trim().length > 0);
+        const parsed = [];
+
+        for (let i = 0; i < rawLines.length; i++) {
+          const row = parseCSVLine(rawLines[i]);
+          if (row.length < 2) continue;
+
+          const char = row[0] || '';
+          if (char.includes('欄位') || char.includes('目標') || char === '') continue;
+
+          const g1 = row[1] || '';
+          const g2 = row[2] || '';
+          const g3 = row[3] || '';
+          const tone = row[4] || '';
+
+          const fCol = row[5] || '';
+          const lastCol = row[row.length - 1] || '';
+
+          if (isRowActive(fCol) || isRowActive(lastCol)) {
+            const gates = [];
+            if (g1) gates.push(g1);
+            if (g2) gates.push(g2);
+            if (g3) gates.push(g3);
+            gates.push(tone);
+            parsed.push({ char, gates });
+          }
+        }
+
+        if (parsed.length === 0) {
+          deckSource = 'offline';
+          questions = [...DEFAULT_DECK];
+          showConnectionError('試算表讀取成功，但未找到啟用的「Y」標記，改用內建題庫！');
+          document.getElementById('startBtn').style.display = 'block';
+          document.getElementById('startBtn').textContent = '使用內建題庫開始遊戲';
+          return;
+        }
+
+        deckSource = 'online';
+        questions = parsed;
+        localStorage.setItem('zhuyin_saved_deck', JSON.stringify(questions));
+
+        const msgEl = document.getElementById('loadingMsg');
+        const startBtn = document.getElementById('startBtn');
+        msgEl.className = '';
+        msgEl.style.color = '#34d399';
+        msgEl.textContent = `🟢 成功連線 Google 試算表！已同步最新題庫（共 ${questions.length} 題，含最新字詞）`;
+        startBtn.style.display = 'block';
+        startBtn.textContent = '進入遊戲（雲端最新題庫）';
+        document.getElementById('retryBtn').style.display = 'none';
+        document.getElementById('manualPasteBox').style.display = 'none';
+
+      } catch (err) {
+        deckSource = 'offline';
+        questions = [...DEFAULT_DECK];
+        showConnectionError('解析失敗：' + err.message + '，改用內建題庫！');
+        document.getElementById('startBtn').style.display = 'block';
+        document.getElementById('startBtn').textContent = '使用內建題庫開始遊戲';
+      }
+    }
+
+    function showConnectionError(errorDetail) {
+      const msgEl = document.getElementById('loadingMsg');
+      const retryBtn = document.getElementById('retryBtn');
+      msgEl.className = 'error-text';
+      msgEl.textContent = errorDetail;
+      retryBtn.style.display = 'inline-block';
+    }
+
+    document.getElementById('saveManualBtn').addEventListener('click', () => {
+      const txt = document.getElementById('csvInput').value;
+      if (txt.trim()) {
+        parseCSVAndStart(txt);
+      }
+    });
+
+    // --- 抽題管理 ---
+    let questionDeck = [];
+    let currentQuestionIndexInRound = 0;
+
+    function shuffleDeck() {
+      questionDeck = [...questions];
+      for (let i = questionDeck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [questionDeck[i], questionDeck[j]] = [questionDeck[j], questionDeck[i]];
+      }
+      currentQuestionIndexInRound = 0;
+    }
+
+    function nextQuestion() {
+      if (questionDeck.length === 0) {
+        shuffleDeck();
+      }
+
+      currentQuestionIndexInRound++;
+      currentQuestion = questionDeck.pop();
+      gateIndex = 0;
+
+      updateHUD();
+      spawnNextGate();
+      startRepeatingSpeech(currentQuestion.char);
+    }
+
+    function updateHUD() {
+      document.getElementById('targetChar').textContent = currentQuestion.char;
+      
+      // HUD 清楚標示題庫來源：☁️ 雲端題庫 或 📦 內建題庫
+      const sourceBadge = (deckSource === 'online') ? '☁️ 雲端' : '📦 內建';
+      document.getElementById('roundProgress').textContent = `第 ${currentQuestionIndexInRound} / ${questions.length} 題 [${sourceBadge}]`;
+
+      const progressContainer = document.getElementById('zhuyinProgress');
+      progressContainer.innerHTML = '';
+      
+      currentQuestion.gates.forEach((sym, idx) => {
+        const slot = document.createElement('div');
+        slot.className = 'slot' + (idx < gateIndex ? ' filled' : '');
+        if (idx < gateIndex) {
+          slot.textContent = (sym === '' ? '—' : sym);
+        } else {
+          slot.textContent = '';
+        }
+        progressContainer.appendChild(slot);
+      });
+
+      let heartStr = '';
+      for (let i = 0; i < 3; i++) {
+        heartStr += i < lives ? '❤️' : '🖤';
+      }
+      document.getElementById('heartContainer').textContent = heartStr;
+    }
+
+    // --- 渲染 ---
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let width, height;
+    function resize() {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    const player = {
+      laneX: 0,
+      targetLaneX: 0,
+      y: 0,
+      radius: 28,
+      color: '#00f2fe'
+    };
+
+    let activeGate = null;
+
+    function getDistractor(correctSymbol) {
+      const candidates = CONFUSION_DICT[correctSymbol] || ['ㄅ', 'ㄆ', 'ㄇ', 'ㄈ'];
+      return candidates[Math.floor(Math.random() * candidates.length)];
+    }
+
+    function spawnNextGate() {
+      if (gateIndex >= currentQuestion.gates.length) {
+        stopRepeatingSpeech();
+
+        // 答對全字：獲得 10 金幣並觸發雲端背景存檔
+        playerData.coins += 10;
+        updatePlayerUI();
+        addFloatingText('+10 💰', width * 0.5, height * 0.45, '#ffd214');
+        cloudSave(true);
+
+        setTimeout(() => {
+          nextQuestion();
+        }, 500);
+        activeGate = null;
+        return;
+      }
+
+      const correct = currentQuestion.gates[gateIndex];
+      const distractor = getDistractor(correct);
+      const isCorrectOnLeft = Math.random() < 0.5;
+
+      activeGate = {
+        z: 1.0,
+        speed: BASE_SPEED * speedMultiplier,
+        leftSymbol: isCorrectOnLeft ? correct : distractor,
+        rightSymbol: isCorrectOnLeft ? distractor : correct,
+        correctSide: isCorrectOnLeft ? -1 : 1,
+        correctSymbol: correct
+      };
+    }
+
+    let isTouching = false;
+    window.addEventListener('pointerdown', (e) => {
+      if (gameState !== 'playing') return;
+      if (e.clientX > width - 90) return;
+      isTouching = true;
+      handleTouch(e);
+    });
+    window.addEventListener('pointermove', (e) => {
+      if (!isTouching || gameState !== 'playing') return;
+      handleTouch(e);
+    });
+    window.addEventListener('pointerup', () => isTouching = false);
+    window.addEventListener('pointercancel', () => isTouching = false);
+
+    function handleTouch(e) {
+      const normX = (e.clientX / width) * 2 - 1;
+      player.targetLaneX = Math.max(-0.85, Math.min(0.85, normX * 1.5));
+    }
+
+    let shakeTimer = 0;
+    function triggerShake() {
+      shakeTimer = 18;
+    }
+
+    let roadOffset = 0;
+
+    function gameLoop() {
+      ctx.save();
+      
+      if (shakeTimer > 0) {
+        const sx = (Math.random() - 0.5) * 12;
+        const sy = (Math.random() - 0.5) * 12;
+        ctx.translate(sx, sy);
+        shakeTimer--;
+      }
+
+      ctx.clearRect(0, 0, width, height);
+      drawRoad();
+
+      if (gameState === 'playing') {
+        player.laneX += (player.targetLaneX - player.laneX) * 0.18;
+        player.y = height * 0.84;
+
+        if (activeGate) {
+          activeGate.speed = BASE_SPEED * speedMultiplier;
+          activeGate.z -= activeGate.speed;
+
+          drawGate(activeGate);
+
+          if (activeGate.z <= 0.08) {
+            checkGateCollision(activeGate);
+          }
+        }
+
+        drawPlayer();
+      }
+
+      // 渲染金幣漂浮特效
+      updateAndDrawFloatingTexts();
+
+      ctx.restore();
+      requestAnimationFrame(gameLoop);
+    }
+
+    function project(laneX, z) {
+      const horizonY = height * 0.32;
+      const fov = 1.0 - z * 0.88;
+      const px = width * 0.5 + (laneX * width * 0.42) * fov;
+      const py = horizonY + (height * 0.58) * Math.pow(1.0 - z, 1.6);
+      return { x: px, y: py, scale: fov };
+    }
+
+    function drawRoad() {
+      const horizonY = height * 0.32;
+      roadOffset = (roadOffset + (2.5 * speedMultiplier)) % 60;
+
+      const roadTopW = width * 0.15;
+      const roadBottomW = width * 0.88;
+
+      ctx.save();
+      const grad = ctx.createLinearGradient(0, horizonY, 0, height);
+      grad.addColorStop(0, '#1c1538');
+      grad.addColorStop(1, '#0e0b1c');
+      ctx.fillStyle = grad;
+
+      ctx.beginPath();
+      ctx.moveTo(width * 0.5 - roadTopW * 0.5, horizonY);
+      ctx.lineTo(width * 0.5 + roadTopW * 0.5, horizonY);
+      ctx.lineTo(width * 0.5 + roadBottomW * 0.5, height);
+      ctx.lineTo(width * 0.5 - roadBottomW * 0.5, height);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.strokeStyle = 'rgba(107, 82, 255, 0.3)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(width * 0.5, horizonY);
+      ctx.lineTo(width * 0.5, height);
+      ctx.stroke();
+
+      ctx.strokeStyle = '#6b52ff';
+      ctx.lineWidth = 6;
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = '#6b52ff';
+
+      ctx.beginPath();
+      ctx.moveTo(width * 0.5 - roadTopW * 0.5, horizonY);
+      ctx.lineTo(width * 0.5 - roadBottomW * 0.5, height);
+      ctx.moveTo(width * 0.5 + roadTopW * 0.5, horizonY);
+      ctx.lineTo(width * 0.5 + roadBottomW * 0.5, height);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawGate(gate) {
+      const z = gate.z;
+      const leftP = project(-0.48, z);
+      const rightP = project(0.48, z);
+      const gateWidth = (width * 0.34) * leftP.scale;
+      const gateHeight = (height * 0.22) * leftP.scale;
+
+      renderSingleGate(leftP.x, leftP.y, gateWidth, gateHeight, gate.leftSymbol);
+      renderSingleGate(rightP.x, rightP.y, gateWidth, gateHeight, gate.rightSymbol);
+    }
+
+    function renderSingleGate(x, y, w, h, symbol) {
+      ctx.save();
+      ctx.translate(x, y);
+
+      ctx.fillStyle = 'rgba(28, 48, 110, 0.65)';
+      ctx.strokeStyle = '#00f2fe';
+      ctx.lineWidth = Math.max(2, 5 * (w / 180));
+      ctx.shadowColor = '#00f2fe';
+      ctx.shadowBlur = 18;
+
+      ctx.beginPath();
+      ctx.roundRect(-w * 0.5, -h, w, h, [12, 12, 0, 0]);
+      ctx.fill();
+      ctx.stroke();
+
+      if (symbol !== '') {
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = '#ffd214';
+        ctx.shadowBlur = 12;
+        ctx.font = `900 ${Math.floor(h * 0.52)}px 'PingFang TC', 'Microsoft JhengHei'`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(symbol, 0, -h * 0.5);
+      }
+
+      ctx.restore();
+    }
+
+    function drawPlayer() {
+      const p = project(player.laneX, 0.05);
+
+      ctx.save();
+      ctx.translate(p.x, p.y);
+
+      ctx.shadowColor = player.color;
+      ctx.shadowBlur = 20;
+
+      const r = player.radius;
+      const eq = playerData.equipped;
+
+      // 裝備特效：1. 學霸光環（神聖金色天使光環）
+      if (eq === '學霸光環') {
+        ctx.save();
+        ctx.strokeStyle = '#ffd214';
+        ctx.lineWidth = 4;
+        ctx.shadowColor = '#ffd214';
+        ctx.shadowBlur = 18;
+        ctx.beginPath();
+        ctx.ellipse(0, -r * 2.2, r * 0.75, r * 0.26, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // 裝備特效：2. 疾風光輪（動態旋轉青綠粒子輪）
+      if (eq === '疾風光輪') {
+        ctx.save();
+        const angle = (Date.now() / 250) % (Math.PI * 2);
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = 4;
+        ctx.shadowColor = '#10b981';
+        ctx.shadowBlur = 16;
+        ctx.beginPath();
+        ctx.arc(0, -r, r * 1.45, angle, angle + Math.PI * 1.2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // 裝備特效：3. 雷霆火花（紫電閃爍電弧）
+      if (eq === '雷霆火花') {
+        ctx.save();
+        ctx.strokeStyle = '#c084fc';
+        ctx.lineWidth = 3;
+        ctx.shadowColor = '#a855f7';
+        ctx.shadowBlur = 18;
+        const sparkTime = Date.now() / 120;
+        ctx.beginPath();
+        for (let i = 0; i < 4; i++) {
+          const a = sparkTime + (i * Math.PI / 2);
+          const dist = r * (1.25 + Math.sin(sparkTime * 2 + i) * 0.25);
+          ctx.moveTo(Math.cos(a) * r, -r + Math.sin(a) * r);
+          ctx.lineTo(Math.cos(a) * dist, -r + Math.sin(a) * dist);
+        }
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // 裝備特效：4. 烈焰流星（熾熱外圈赤芒）
+      if (eq === '烈焰流星') {
+        ctx.save();
+        ctx.shadowColor = '#ff3b69';
+        ctx.shadowBlur = 24;
+        ctx.strokeStyle = '#ff7a00';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(0, -r, r * 1.3, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // 本體能量球
+      const grad = ctx.createRadialGradient(0, -r * 0.4, 4, 0, 0, r);
+      grad.addColorStop(0, '#ffffff');
+      grad.addColorStop(0.5, player.color);
+      grad.addColorStop(1, '#0e3a66');
+      ctx.fillStyle = grad;
+
+      ctx.beginPath();
+      ctx.arc(0, -r, r, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 裝備特效：初心者護目鏡（賽博電子護目鏡）
+      if (eq === '初心者護目鏡' || !eq) {
+        ctx.save();
+        ctx.fillStyle = '#00f2fe';
+        ctx.shadowColor = '#00f2fe';
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.roundRect(-r * 0.72, -r * 1.2, r * 1.44, r * 0.4, 6);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.fillRect(-r * 0.52, -r * 1.12, r * 0.36, r * 0.12);
+        ctx.restore();
+      }
+
+      // 角色陰影
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+      ctx.beginPath();
+      ctx.ellipse(0, 4, r * 0.8, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    function checkGateCollision(gate) {
+      const chosenSide = player.laneX <= 0 ? -1 : 1;
+      const isCorrect = (chosenSide === gate.correctSide);
+
+      if (isCorrect) {
+        gateIndex++;
+        updateHUD();
+        spawnNextGate();
+      } else {
+        lives--;
+        triggerShake();
+        updateHUD();
+
+        if (lives <= 0) {
+          gameOver();
+        } else {
+          spawnNextGate();
+        }
+      }
+    }
+
+    function gameOver() {
+      gameState = 'gameover';
+      stopRepeatingSpeech();
+      activeGate = null;
+      cloudSave(true); // 自動背景雲端備份存檔
+      document.getElementById('hud').style.display = 'none';
+      document.getElementById('speed-panel').style.display = 'none';
+      document.getElementById('startOverlay').style.display = 'flex';
+      document.getElementById('startOverlay').querySelector('h1').textContent = '挑戰失敗！';
+      document.getElementById('loadingMsg').className = '';
+      document.getElementById('loadingMsg').textContent = `別氣餒！題目是「${currentQuestion.char}」，再試一次吧！`;
+      document.getElementById('startBtn').textContent = '重新挑戰';
+    }
+
+    document.getElementById('startBtn').addEventListener('click', () => {
+      unlockAudioForMobile();
+      // 同步輸入框代碼
+      const inputEl = document.getElementById('playerIdInput');
+      if (inputEl && inputEl.value.trim()) {
+        playerData.id = inputEl.value.trim();
+        cloudSave(true);
+      }
+      lives = 3;
+      gameState = 'playing';
+      document.getElementById('startOverlay').style.display = 'none';
+      document.getElementById('hud').style.display = 'flex';
+      document.getElementById('speed-panel').style.display = 'flex';
+      initSpeech();
+      shuffleDeck();
+      nextQuestion();
+    });
+
+    document.getElementById('retryBtn').addEventListener('click', () => {
+      fetchQuestions();
+    });
+
+    document.getElementById('replayBtn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      unlockAudioForMobile();
+      if (currentQuestion) speak(currentQuestion.char);
+    });
+
+    // 雲端存檔 / 讀檔按鈕事件
+    document.getElementById('cloudLoadBtn').addEventListener('click', () => {
+      const id = document.getElementById('playerIdInput').value;
+      cloudLoad(id);
+    });
+
+    document.getElementById('cloudSaveBtn').addEventListener('click', () => {
+      cloudSave(false);
+    });
+
+    document.getElementById('hudSaveBtn').addEventListener('click', () => {
+      cloudSave(false);
+    });
+
+    // 換裝衣櫥開關事件
+    document.getElementById('openWardrobeBtn').addEventListener('click', openWardrobe);
+    document.getElementById('closeWardrobeBtn').addEventListener('click', closeWardrobe);
+    document.getElementById('wardrobeModal').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('wardrobeModal')) closeWardrobe();
+    });
+
+    // 玩家代碼輸入框失焦時自動更新
+    document.getElementById('playerIdInput').addEventListener('change', (e) => {
+      if (e.target.value.trim()) {
+        playerData.id = e.target.value.trim();
+        updatePlayerUI();
+      }
+    });
+
+    const speedSlider = document.getElementById('speedSlider');
+    const speedDisplay = document.getElementById('speedDisplay');
+    speedSlider.addEventListener('input', (e) => {
+      speedMultiplier = parseFloat(e.target.value);
+      speedDisplay.textContent = speedMultiplier.toFixed(1) + 'x';
+    });
+
+    const speedPanel = document.getElementById('speed-panel');
+    speedPanel.addEventListener('pointerdown', (e) => e.stopPropagation());
+    speedPanel.addEventListener('pointermove', (e) => e.stopPropagation());
+
+    initPlayerData();
+    initSpeech();
+    fetchQuestions();
+    requestAnimationFrame(gameLoop);
+  </script>
+</body>
+</html>
